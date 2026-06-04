@@ -46,10 +46,10 @@ description: 前端复用治理规范。用于 Vue / React 前端开发前检查
 
 ## 强制执行流程
 
-1. 先通过 `frontend-project-structure` 明确目标能力的结构归属：`features`、`features-shared`、`components`、`api`、`mock`、`stores` 等。
+1. 先通过 `frontend-project-structure` 明确目标能力的结构归属：`business`、`business-shared`、`components`、`api`、`mock`、`stores` 等。
 2. 识别目标能力：业务域、业务功能、交互行为、视觉形态、数据模型。
 3. 开发前搜索默认范围：
-   - 同 feature：`src/features/<domain>/<feature>/`。
+   - 同 feature：`src/business/<domain>/<feature>/`。
    - 全局组件：`src/components/`。
    - 逻辑资产：项目现有 `hooks`、`composables`、`stores`、`utils`、`api`、`mock` 等目录。
 4. 按名称语义、视觉形态、功能行为、数据模型综合判断相似度。
@@ -116,9 +116,9 @@ description: 前端复用治理规范。用于 Vue / React 前端开发前检查
 
 复用层级按就近原则逐级上提：
 
-1. 单一 feature 内复用：保留在 `src/features/<domain>/<feature>/`。
-2. 同 domain 跨 feature 复用：上提到 `src/features/<domain>/shared/`。
-3. 跨 domain 但仍有业务语义：上提到 `src/features-shared/`。
+1. 单一 feature 内复用：保留在 `src/business/<domain>/<feature>/`。
+2. 同 domain 跨 feature 复用：上提到 `src/business/<domain>/shared/`。
+3. 跨 domain 但仍有业务语义：上提到 `src/business-shared/`。
 4. 彻底业务无关 UI：上提到 `src/components/`。
 
 具体文件归属必须服从 `frontend-project-structure`。
@@ -211,6 +211,7 @@ description: 前端复用治理规范。用于 Vue / React 前端开发前检查
 
 ## 版本与变更记录
 
+- v1.3.0：跟随 `frontend-project-structure` 将业务目录命名从 `src/features/`、`src/features-shared/` 调整为 `src/business/`、`src/business-shared/`，避免复用治理与结构规范冲突。
 - v1.2.0：将复用治理从 Vue 术语泛化为 Vue / React；搜索范围补充 hooks，复用扩展方式补充 children / render prop。
 - v1.1.0：移除 `frontend-tech-stack` skill 依赖，技术栈改为读取 `docs/frontend-tech-stack.md` 与当前项目事实。
 - v1.0.0：建立复用治理、开发前搜索、四类相似度判断、85% 重构阈值、交付说明机制与 `frontend-project-structure` 协同规则。

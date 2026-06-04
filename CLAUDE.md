@@ -101,9 +101,9 @@ docs/frontend-tech-stack.md
 关键经验：
 
 - 不包含 API 函数语义、Mock 字段完整性、类型系统、编码规范、技术选型。
-- 重点约束 `src/pages/`、`src/features/`、`src/features-shared/`、`src/components/`、`src/api/`、`src/mock/`、`src/styles/` 等目录归属。
+- 重点约束 `src/pages/`、`src/business/`、`src/business-shared/`、`src/components/`、`src/api/`、`src/mock/`、`src/styles/` 等目录归属。
 - 页面入口走 `src/pages/`，默认配合显式路由配置；文件路由框架例外必须来自项目事实。
-- 业务组件放 `src/features/<domain>/<feature>/`。
+- 业务组件放 `src/business/<domain>/<feature>/`。
 - 通用组件放 `src/components/`。
 - API 文件位置和 Mock 文件位置只做结构约束，不在该 skill 中约束字段或函数细节。
 - Vue / React 的文件后缀、路由库、状态管理目录细节都跟随技术栈上下文和项目事实。
