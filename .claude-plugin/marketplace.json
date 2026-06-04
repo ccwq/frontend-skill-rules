@@ -1,0 +1,23 @@
+{
+  "name": "frontend-skill-rules-marketplace",
+  "owner": {
+    "name": "ccwq"
+  },
+  "metadata": {
+    "description": "Marketplace source for the Frontend Skill Rules Claude plugin.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "frontend-skill-rules",
+      "description": "Frontend project structure, reuse governance, and code style skills.",
+      "source": "./",
+      "strict": true,
+      "skills": [
+        "./agent-skills/frontend-project-structure",
+        "./agent-skills/frontend-reuse-governance",
+        "./agent-skills/frontend-code-style"
+      ]
+    }
+  ]
+}

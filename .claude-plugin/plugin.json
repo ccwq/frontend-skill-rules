@@ -1,0 +1,10 @@
+{
+  "name": "frontend-skill-rules",
+  "description": "Frontend rules plugin that exposes Claude Code skills for project structure, reuse governance, and code style.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ccwq"
+  },
+  "repository": "https://github.com/ccwq/frontend-skill-rules.git",
+  "skills": "./agent-skills"
+}

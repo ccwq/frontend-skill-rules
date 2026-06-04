@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `FE-prompts.txt`：前端规范来源材料，不作为最终 skill 的运行时依赖。
 - `final-prototype/`：天润项目管理系统静态原型，用于推导当前项目的技术选型与前端能力需求。
-- `.claude/skills/`：项目内前端规范 skill，供后续复制、迁移、安装。
+- `agent-skills/`：项目内前端规范 skill，供后续复制、迁移、安装。
 
 当前目录不是完整业务前端工程，而是“规范 / 原型 / skill”仓库。不要把 `final-prototype` 误判为正式 Vue / React 工程。
 
@@ -62,9 +62,9 @@ docs/frontend-tech-stack.md
 项目内保留以下前端规范 skill：
 
 ```text
-.claude/skills/frontend-project-structure/SKILL.md
-.claude/skills/frontend-reuse-governance/SKILL.md
-.claude/skills/frontend-code-style/SKILL.md
+agent-skills/frontend-project-structure/SKILL.md
+agent-skills/frontend-reuse-governance/SKILL.md
+agent-skills/frontend-code-style/SKILL.md
 ```
 
 已废弃并删除的旧名称：

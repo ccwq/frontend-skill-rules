@@ -43,8 +43,29 @@ YOLO 不是忽略规范，而是把阻塞项转为“记录后继续”，用于
 
 ## 安装命令
 
+### Claude Code plugins 安装（推荐）
+
 ```bash
-npx -y skills add ./.claude/skills/frontend-project-structure
-npx -y skills add ./.claude/skills/frontend-reuse-governance
-npx -y skills add ./.claude/skills/frontend-code-style
+claude plugin marketplace add https://github.com/ccwq/frontend-skill-rules.git --scope user
+claude plugin install frontend-skill-rules@frontend-skill-rules-marketplace --scope user
+```
+
+安装完成后，重启 Claude Code，或在会话内执行 `/reload-skills`。
+
+### npx skills 安装（保留）
+
+本地仓库安装：
+
+```bash
+npx -y skills add ./agent-skills/frontend-project-structure
+npx -y skills add ./agent-skills/frontend-reuse-governance
+npx -y skills add ./agent-skills/frontend-code-style
+```
+
+公开仓库安装：
+
+```bash
+npx -y skills add https://github.com/ccwq/frontend-skill-rules/tree/main/agent-skills/frontend-project-structure
+npx -y skills add https://github.com/ccwq/frontend-skill-rules/tree/main/agent-skills/frontend-reuse-governance
+npx -y skills add https://github.com/ccwq/frontend-skill-rules/tree/main/agent-skills/frontend-code-style
 ```
