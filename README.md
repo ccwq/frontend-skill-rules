@@ -15,6 +15,22 @@ docs/frontend-tech-stack.md
 引入的重要第三方组件时候，先判断是否符合技术栈；引入新的功能需要在文件中登记。
 ```
 
+## 快速上手
+
+```bash
+# 1. 安装全部 frontend skills（推荐：Claude Code plugins）
+claude plugin marketplace add https://github.com/ccwq/frontend-skill-rules.git --scope user
+claude plugin install frontend-skill-rules@frontend-skill-rules-marketplace --scope user
+
+# 2. 复制技术栈上下文到目标项目后按项目事实调整
+cp docs/frontend-tech-stack.md <your-project>/docs/frontend-tech-stack.md
+
+# 3. 在目标项目 CLAUDE.md / AGENTS.md 写入上方约束，并重载 skills
+/reload-skills
+```
+
+使用时先让 Claude Code 读取 `docs/frontend-tech-stack.md`，再按 `frontend-project-structure` → `frontend-reuse-governance` → `frontend-code-style` 的顺序执行。
+
 ## Skill 说明
 
 ### frontend-project-structure
@@ -57,15 +73,11 @@ claude plugin install frontend-skill-rules@frontend-skill-rules-marketplace --sc
 本地仓库安装：
 
 ```bash
-npx -y skills add ./agent-skills/frontend-project-structure
-npx -y skills add ./agent-skills/frontend-reuse-governance
-npx -y skills add ./agent-skills/frontend-code-style
+npx -y skills add ./agent-skills --all
 ```
 
 公开仓库安装：
 
 ```bash
-npx -y skills add https://github.com/ccwq/frontend-skill-rules/tree/main/agent-skills/frontend-project-structure
-npx -y skills add https://github.com/ccwq/frontend-skill-rules/tree/main/agent-skills/frontend-reuse-governance
-npx -y skills add https://github.com/ccwq/frontend-skill-rules/tree/main/agent-skills/frontend-code-style
+npx -y skills add https://github.com/ccwq/frontend-skill-rules
 ```
