@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>天润项目管理系统 · 正式原型</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<div class="bg-canvas"></div>
+<div id="app">
+    <header class="topbar">
+        <div class="topbar-left">
+            <div class="logo">
+                <svg class="logo-svg" viewBox="0 0 220 90" xmlns="http://www.w3.org/2000/svg" aria-label="TIRAIN">
+                    <defs>
+                        <linearGradient id="trArc" x1="0" x2="1" y1="0" y2="0">
+                            <stop offset="0" stop-color="#0E2A6F" stop-opacity="0"/>
+                            <stop offset="0.15" stop-color="#0E2A6F" stop-opacity="0.55"/>
+                            <stop offset="0.5" stop-color="#1E3A8A" stop-opacity="1"/>
+                            <stop offset="0.85" stop-color="#0E2A6F" stop-opacity="0.55"/>
+                            <stop offset="1" stop-color="#0E2A6F" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <text x="110" y="58" text-anchor="middle" font-family="'Plus Jakarta Sans','Outfit',Arial,sans-serif" font-weight="900" font-size="56" letter-spacing="-1" fill="#0E2A6F">T<tspan>I</tspan><tspan fill="#B91C1C">R</tspan>AIN</text>
+                    <text x="195" y="32" font-family="Arial" font-size="13" font-weight="700" fill="#0E2A6F">®</text>
+                    <path d="M 18 76 Q 110 96 202 76" stroke="url(#trArc)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                </svg>
+                <div class="logo-text" data-i18n="app.title">项目管理系统</div>
+            </div>
+            <button class="icon-btn" id="btnCollapse" title="折叠侧栏"><span class="material-symbols-rounded">menu</span></button>
+            <nav class="crumb" id="crumb">
+                <span>首页</span>
+                <span class="material-symbols-rounded sep">chevron_right</span>
+                <span class="cur">综合数据看板</span>
+            </nav>
+        </div>
+        <div class="topbar-right">
+            <button class="icon-btn" id="btnAiApps" title="AI 应用工具" onclick="window.open('../../../work_ai/tr-ai-agent/design/prototype/pmanage_app_launcher.html?from=pmanage', '_blank')">
+                <span class="material-symbols-rounded">apps</span>
+            </button>
+            <button class="icon-btn" id="btnZoom" title="页面缩放">
+                <span class="material-symbols-rounded">search</span>
+            </button>
+            <button class="icon-btn notify-btn" id="btnNotify" title="通知">
+                <span class="material-symbols-rounded">notifications</span>
+                <span class="badge" id="notifyBadge">7</span>
+            </button>
+            <button class="icon-btn lang-btn" id="btnLang" title="中文 / English">
+                <span class="lang-text" id="langText">EN</span>
+            </button>
+            <button class="icon-btn" id="btnTheme" title="主题循环：浅色 → 深色 → 护眼"><span class="material-symbols-rounded" id="themeIcon">light_mode</span></button>
+            <div class="role-pill" id="rolePill">
+                <span class="swatch" id="roleSwatch" style="background:linear-gradient(135deg,#60A5FA,#3B82F6)"></span>
+                <div class="meta">
+                    <div class="n" id="roleName">总经理</div>
+                    <div class="t" id="roleTag">R2 · 决策</div>
+                </div>
+                <span class="material-symbols-rounded" style="font-size:16px;color:var(--text-3)">expand_more</span>
+            </div>
+            <div class="role-menu" id="roleMenu"></div>
+            <div class="notify-menu" id="notifyMenu"></div>
+            <div class="user"><div class="avatar">王</div></div>
+            <div class="win-ctrls">
+                <div class="wc-btn" title="最小化"><span class="material-symbols-rounded">remove</span></div>
+                <div class="wc-btn" title="最大化"><span class="material-symbols-rounded">crop_square</span></div>
+                <div class="wc-btn close" title="关闭"><span class="material-symbols-rounded">close</span></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="side-1" id="side1"></aside>
+        <aside class="side-2" id="side2"></aside>
+        <main class="main">
+            <div class="tags" id="tags"></div>
+            <div class="pages" id="pages"></div>
+        </main>
+    </div>
+
+    <footer class="statusbar">
+        <div class="sb-item"><span class="sb-dot"></span><span>已连接 · server.trmap.cn</span></div>
+        <div class="sb-divider"></div>
+        <div class="sb-item"><span class="material-symbols-rounded">person</span><span id="sbUser">总经理 · R2</span></div>
+        <div class="sb-divider"></div>
+        <div class="sb-item"><span class="material-symbols-rounded">cloud_done</span><span>实时同步 · 0ms 延迟</span></div>
+        <div class="sb-spacer"></div>
+        <div class="sb-item clickable" id="sbNotify"><span class="material-symbols-rounded">mail</span><span>未读 <b id="sbUnread">7</b> 条</span></div>
+        <div class="sb-divider"></div>
+        <div class="sb-item clickable" id="sbDnd"><span class="material-symbols-rounded" id="sbDndIcon">notifications_active</span><span id="sbDndText">通知开启</span></div>
+        <div class="sb-divider"></div>
+        <div class="sb-item">v1.0.0</div>
+    </footer>
+
+    <div class="ai-fab" id="aiFab">
+        <span class="pulse"></span>
+        <span class="material-symbols-rounded">auto_awesome</span>
+        <span class="ai-tip">天润 AI · 点击对话</span>
+    </div>
+
+    <div class="ai-panel" id="aiPanel">
+        <div class="ai-head">
+            <div class="ava"><span class="material-symbols-rounded">auto_awesome</span></div>
+            <div class="info">
+                <div class="n">天润 AI 助手</div>
+                <div class="s"><span class="live"></span><span>在线 · 已接入项目数据</span></div>
+            </div>
+            <div class="acts">
+                <div class="ai-act-btn" id="aiClear" title="清空对话"><span class="material-symbols-rounded">delete_sweep</span></div>
+                <div class="ai-act-btn" id="aiMinify" title="折叠"><span class="material-symbols-rounded">remove</span></div>
+                <div class="ai-act-btn" id="aiClose" title="关闭"><span class="material-symbols-rounded">close</span></div>
+            </div>
+        </div>
+        <div class="ai-body" id="aiBody"></div>
+        <div class="ai-suggestions" id="aiSuggestions"></div>
+        <div class="ai-input">
+            <textarea id="aiInput" rows="1" placeholder="输入你的问题... (Enter 发送)"></textarea>
+            <div class="send-btn" id="aiSend"><span class="material-symbols-rounded">send</span></div>
+        </div>
+    </div>
+
+    <!-- 页面缩放滑块 -->
+    <div class="zoom-slider-panel" id="zoomSlider">
+        <span class="zs-label">页面缩放</span>
+        <input type="range" id="zoomRange" min="100" max="200" step="5" value="100"/>
+        <span class="zs-value" id="zoomValue">100%</span>
+    </div>
+
+    <!-- 通用弹窗容器（支持拖拽调整大小） -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="modal-window" id="modalWindow">
+        <div class="modal-head" id="modalHead">
+            <div class="modal-title" id="modalTitle">标题</div>
+            <div class="modal-acts">
+                <div class="modal-btn" id="modalClose"><span class="material-symbols-rounded">close</span></div>
+            </div>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+</div>
+
+<script src="./data.js"></script>
+<script src="./views.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
