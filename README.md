@@ -1,6 +1,28 @@
 # Frontend Agent Rules
 
-一套可复用的前端 Claude Code skills 规范集合，用于约束项目结构、复用治理与编码风格，并通过 `docs/frontend-tech-stack.md` 维护项目技术栈上下文。适合在 Vue / React 前端项目中复制、安装和按项目事实调整。
+一套可复用的前端 Claude Code skills 规范集合，用于约束项目结构、复用治理与编码风格，并通过 `docs/frontend-tech-stack.md` 维护项目技术栈上下文。适合在 Vue / React 前端项目中一键安装、复制和按项目事实调整。
+
+## 快速安装
+
+在目标项目根目录执行；Windows 请使用 Git Bash：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/main/scripts/install-project-rules.sh)
+```
+
+安装完成后，回到 Claude Code 会话执行：
+
+```text
+/reload-skills
+```
+
+脚本默认把“当前目录”作为目标项目根目录，会执行：
+
+- 通过 `npx -y skills add https://github.com/ccwq/frontend-skill-rules` 安装全部 frontend skills。
+- 创建或处理 `docs/frontend-tech-stack.md`。
+- 在确认后，把下方 README 代码段写入目标项目 `CLAUDE.md` / `AGENTS.md`。
+
+> `CLAUDE.md` / `AGENTS.md` 写入内容唯一来源是本 README 的下方代码段；脚本不会使用其他模板文件作为来源。
 
 ## 需要写入 CLAUDE.md / AGENTS.md 的内容
 
@@ -15,21 +37,92 @@ docs/frontend-tech-stack.md
 引入的重要第三方组件时候，先判断是否符合技术栈；引入新的功能需要在文件中登记。
 ```
 
-## 快速上手
+## 安装细节
+
+### 脚本入口
+
+推荐入口：
 
 ```bash
-# 1. 安装全部 frontend skills（推荐：Claude Code plugins）
-claude plugin marketplace add https://github.com/ccwq/frontend-skill-rules.git --scope user
-claude plugin install frontend-skill-rules@frontend-skill-rules-marketplace --scope user
-
-# 2. 复制技术栈上下文到目标项目后按项目事实调整
-cp docs/frontend-tech-stack.md <your-project>/docs/frontend-tech-stack.md
-
-# 3. 在目标项目 CLAUDE.md / AGENTS.md 写入上方约束，并重载 skills
-/reload-skills
+bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/main/scripts/install-project-rules.sh)
 ```
 
-使用时先让 Claude Code 读取 `docs/frontend-tech-stack.md`，再按 `frontend-project-structure` → `frontend-reuse-governance` → `frontend-code-style` 的顺序执行。
+脚本默认安装到当前目录：
+
+```bash
+TARGET_DIR="$(pwd)"
+```
+
+支持参数：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/main/scripts/install-project-rules.sh) [--skip-skills] [--ref <branch-or-tag>] [--target <path>]
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `--skip-skills` | 跳过 `npx` 远程安装 skills，只处理 `docs` 与 `CLAUDE.md` / `AGENTS.md`。 |
+| `--ref <branch-or-tag>` | 指定脚本读取 GitHub 资源的分支或 tag，默认 `main`。 |
+| `--target <path>` | 高级兼容用法；默认不需要，未传时使用当前目录。 |
+| `--help` | 输出帮助。 |
+
+测试指定版本时，raw URL 中的分支和 `--ref` 需要保持一致：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/<branch-or-tag>/scripts/install-project-rules.sh) --ref <branch-or-tag>
+```
+
+### 交互确认规则
+
+脚本遵循“默认不覆盖、写入前确认”的策略。
+
+`docs/frontend-tech-stack.md`：
+
+- 不存在：直接创建并写入远程模板。
+- 已存在：提醒该文件可能包含目标项目真实技术栈事实，并询问是否追加模板内容。
+- 选择取消：不修改文件，并输出手动合并方式。
+
+`CLAUDE.md` / `AGENTS.md`：
+
+- 不存在：提醒并询问是否创建。
+- 已存在但没有受控块：提醒并询问是否追加。
+- 已存在受控块：跳过，避免重复写入。
+- 选择否定：不创建、不追加，并输出手动增加方法。
+
+写入使用受控标记，方便幂等执行：
+
+```md
+<!-- frontend-skill-rules:begin -->
+...
+<!-- frontend-skill-rules:end -->
+```
+
+技术栈模板追加也使用受控标记，避免重复追加：
+
+```md
+<!-- frontend-skill-rules-tech-stack-template:begin -->
+...
+<!-- frontend-skill-rules-tech-stack-template:end -->
+```
+
+### 手动安装
+
+如果脚本无法自动安装 skills，可在目标项目根目录手动执行：
+
+```bash
+npx -y skills add https://github.com/ccwq/frontend-skill-rules
+```
+
+然后手动处理：
+
+1. 从远程模板创建或合并 `docs/frontend-tech-stack.md`：
+
+   ```text
+   https://raw.githubusercontent.com/ccwq/frontend-skill-rules/main/docs/frontend-tech-stack.md
+   ```
+
+2. 将本 README 中“需要写入 CLAUDE.md / AGENTS.md 的内容”代码段加入目标项目 `CLAUDE.md` / `AGENTS.md`。
+3. 在 Claude Code 会话内执行 `/reload-skills`，或重启 Claude Code。
 
 ## Skill 说明
 
@@ -57,27 +150,40 @@ cp docs/frontend-tech-stack.md <your-project>/docs/frontend-tech-stack.md
 
 YOLO 不是忽略规范，而是把阻塞项转为“记录后继续”，用于减少等待用户决策造成的效率损耗。
 
-## 安装命令
+## 使用顺序
 
-### Claude Code plugins 安装（推荐）
+前端开发、生成、重构、审查任务涉及页面、组件、API、Mock、样式或交互时，先读取技术栈上下文与当前项目事实，再按顺序执行：
 
-```bash
-claude plugin marketplace add https://github.com/ccwq/frontend-skill-rules.git --scope user
-claude plugin install frontend-skill-rules@frontend-skill-rules-marketplace --scope user
+1. `docs/frontend-tech-stack.md`、`package.json`、锁文件、构建配置、样式配置、路由/状态管理/UI 库等现有配置。
+2. `frontend-project-structure`
+3. `frontend-reuse-governance`
+4. `frontend-code-style`
+
+冲突优先级：
+
+```text
+技术栈上下文 / 项目事实 > frontend-project-structure > frontend-reuse-governance > frontend-code-style
 ```
 
-安装完成后，重启 Claude Code，或在会话内执行 `/reload-skills`。
+## 技术栈上下文
 
-### npx skills 安装（保留）
+技术栈上下文统一维护在：
 
-本地仓库安装：
-
-```bash
-npx -y skills add ./agent-skills --all
+```text
+docs/frontend-tech-stack.md
 ```
 
-公开仓库安装：
+该文件是目标项目的技术栈方向清单与轻量约束。复制到项目后必须按项目事实调整；如果文档与当前项目事实冲突，以当前项目事实和用户明确要求优先。
 
-```bash
-npx -y skills add https://github.com/ccwq/frontend-skill-rules
-```
+技术栈变化时，优先更新 `docs/frontend-tech-stack.md`，不要把项目技术栈重新做成 skill。
+
+## 维护原则
+
+- `FE-prompts.txt` 是来源材料，不作为最终 skill 的运行时依赖。
+- 修改规范时优先改对应 skill 的 `SKILL.md`，并更新其“版本与变更记录”。
+- 新增项目经验时先判断属于哪一层：技术栈上下文、项目结构、复用治理、编码风格、planning-with-files，不要把规则混在一起。
+- 如果只是换项目，应重新读取或更新该项目的技术栈上下文，不要直接沿用当前项目基线。
+- 已废弃并删除的旧 skill 名称不要恢复，也不要保留兼容别名：
+  - `frontend-file-structure`
+  - `frontend-project-style`
+  - `frontend-product-style`
