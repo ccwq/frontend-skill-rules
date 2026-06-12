@@ -18,7 +18,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/ma
 
 脚本默认把“当前目录”作为目标项目根目录，会执行：
 
-- 通过 `npx -y skills add https://github.com/ccwq/frontend-skill-rules` 安装全部 frontend skills。
+- 从项目根目录 `.env.config` 读取默认安装的 frontend skills 配置。
+- 通过 `npx -y skills add https://github.com/ccwq/frontend-skill-rules --skill frontend-project-structure frontend-reuse-governance frontend-code-style -y` 安装默认 frontend skills，跳过 skills CLI 多选勾选步骤。
 - 创建或处理 `docs/frontend-tech-stack.md`。
 - 在确认后，把下方 README 代码段写入目标项目 `CLAUDE.md` / `AGENTS.md`。
 
@@ -72,6 +73,16 @@ bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/ma
 bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/<branch-or-tag>/scripts/install-project-rules.sh) --ref <branch-or-tag>
 ```
 
+### 可配置项
+
+项目根目录 `.env.config` 纳入版本管理，用于集中维护安装脚本需要配置的内容。当前配置：
+
+```bash
+DEFAULT_SKILLS="frontend-project-structure frontend-reuse-governance frontend-code-style"
+```
+
+`DEFAULT_SKILLS` 使用空格分隔，脚本会传给 `npx skills add --skill`，用于跳过 skills CLI 多选勾选步骤。
+
 ### 交互确认规则
 
 脚本遵循“默认不覆盖、写入前确认”的策略。
@@ -110,7 +121,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/<b
 如果脚本无法自动安装 skills，可在目标项目根目录手动执行：
 
 ```bash
-npx -y skills add https://github.com/ccwq/frontend-skill-rules
+npx -y skills add https://github.com/ccwq/frontend-skill-rules --skill frontend-project-structure frontend-reuse-governance frontend-code-style -y
 ```
 
 然后手动处理：

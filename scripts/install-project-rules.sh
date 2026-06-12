@@ -6,9 +6,13 @@ REPO_OWNER="ccwq"
 REPO_NAME="frontend-skill-rules"
 REF="main"
 TARGET_DIR=""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG_FILE="$REPO_ROOT/.env.config"
 SKIP_SKILLS=0
 SKILLS_INSTALL_FAILED=0
 PROMPT_CONTENT=""
+DEFAULT_SKILLS=""
 
 BEGIN_MARKER="<!-- frontend-skill-rules:begin -->"
 END_MARKER="<!-- frontend-skill-rules:end -->"
@@ -66,6 +70,39 @@ readme_url() {
 
 tech_stack_url() {
   printf '%s/docs/frontend-tech-stack.md' "$(raw_base_url)"
+}
+
+config_url() {
+  printf '%s/.env.config' "$(raw_base_url)"
+}
+
+load_config() {
+  local config_content=""
+
+  if [[ -f "$CONFIG_FILE" ]]; then
+    # .env.config 只用于维护安装脚本参数；当前需要 DEFAULT_SKILLS。
+    # shellcheck disable=SC1090
+    source "$CONFIG_FILE"
+  else
+    log "本地未找到 .env.config，改为读取远程配置：$(config_url)"
+    if ! config_content="$(download_text "$(config_url)")"; then
+      fail "无法读取配置文件：$(config_url)"
+    fi
+
+    DEFAULT_SKILLS="$(printf '%s\n' "$config_content" | awk -F= '
+      /^[[:space:]]*DEFAULT_SKILLS=/ {
+        value = substr($0, index($0, "=") + 1)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+        gsub(/^"|"$/, "", value)
+        print value
+        exit
+      }
+    ')"
+  fi
+
+  if [[ -z "${DEFAULT_SKILLS//[[:space:]]/}" ]]; then
+    fail ".env.config 中 DEFAULT_SKILLS 不能为空。"
+  fi
 }
 
 confirm() {
@@ -253,6 +290,11 @@ copy_or_append_tech_stack() {
 
 install_skills() {
   local install_url
+  local default_skills=()
+  local skills_args=()
+
+  read -r -a default_skills <<< "$DEFAULT_SKILLS"
+  skills_args=(--skill "${default_skills[@]}")
 
   install_url="$(repo_url)"
 
@@ -262,8 +304,9 @@ install_skills() {
     return 0
   fi
 
-  log "开始远程安装全部 frontend skills：npx -y skills add $install_url"
-  if npx -y skills add "$install_url"; then
+  # skills CLI 默认会进入多选交互；显式传入 .env.config 中的 skill 并加 -y，跳过勾选步骤。
+  log "开始远程安装默认 frontend skills：npx -y skills add $install_url --skill $DEFAULT_SKILLS -y"
+  if npx -y skills add "$install_url" "${skills_args[@]}" -y; then
     log "skills 安装命令执行完成。"
   else
     warn "skills 自动安装失败，将继续处理 docs 与 CLAUDE.md / AGENTS.md。"
@@ -281,7 +324,7 @@ print_skills_manual_instructions_if_needed() {
 skills 手动安装方式：
 请在网络和 npx 可用后执行：
 
-npx -y skills add $(repo_url)
+npx -y skills add $(repo_url) --skill $DEFAULT_SKILLS -y
 
 EOF
 }
@@ -316,6 +359,7 @@ parse_args() {
 
 main() {
   parse_args "$@"
+  load_config
 
   if [[ -z "$TARGET_DIR" ]]; then
     TARGET_DIR="$(pwd)"
