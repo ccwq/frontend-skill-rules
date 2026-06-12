@@ -172,10 +172,24 @@ load_prompt_content() {
   PROMPT_CONTENT="$prompt"
 }
 
+ensure_tagged_content() {
+  local tag_name="$1"
+  local content="$2"
+  local start_tag="<$tag_name>"
+  local end_tag="</$tag_name>"
+
+  if [[ "$content" == *"$start_tag"* && "$content" == *"$end_tag"* ]]; then
+    printf '%s\n' "$content"
+    return 0
+  fi
+
+  printf '%s\n' "$start_tag"
+  printf '%s\n' "$content"
+  printf '%s\n' "$end_tag"
+}
+
 prompt_block() {
-  printf '%s\n' "$BEGIN_MARKER"
-  printf '%s\n' "$PROMPT_CONTENT"
-  printf '%s\n' "$END_MARKER"
+  ensure_tagged_content "frontend-rules" "$PROMPT_CONTENT"
 }
 
 print_manual_prompt_instructions() {
@@ -183,7 +197,9 @@ print_manual_prompt_instructions() {
 
   cat <<EOF
 
-手动配置方式：请在 $target_file 中加入以下内容。
+手动配置方式：请在 $target_file 中按以下规则处理。
+- 不存在 <frontend-rules>：追加以下配置块。
+- 已存在 <frontend-rules>：覆盖该 tag 内的整个配置块，不要重复追加。
 内容唯一来源：$(readme_url) 中“需要写入 CLAUDE.md / AGENTS.md 的内容”代码段。
 
 EOF
@@ -200,35 +216,125 @@ print_manual_tech_stack_instructions() {
 请手动对比并合并：
 - 源模板：$(tech_stack_url)
 - 目标文件：$target_file
+规则：目标文件不存在 <frontend-tech-stack> 时追加源模板；已存在时覆盖该 tag 内的整个配置块，不要重复追加。
 建议保留目标项目真实技术栈，以当前项目事实优先。
 
 EOF
 }
 
-append_prompt_block() {
+replace_block_in_file() {
   local target_file="$1"
+  local start_pattern="$2"
+  local end_pattern="$3"
+  local replacement_file="$4"
+  local temp_file=""
+
+  temp_file="$(mktemp)" || return 1
+  awk -v start="$start_pattern" -v end="$end_pattern" -v replacement_file="$replacement_file" '
+    function print_replacement() {
+      while ((getline line < replacement_file) > 0) {
+        print line
+      }
+      close(replacement_file)
+    }
+    index($0, start) > 0 {
+      if (!replaced) {
+        print_replacement()
+        replaced = 1
+      }
+      in_block = index($0, end) == 0
+      next
+    }
+    in_block && index($0, end) > 0 {
+      in_block = 0
+      next
+    }
+    !in_block { print }
+  ' "$target_file" > "$temp_file" || {
+    rm -f "$temp_file"
+    return 1
+  }
+  mv "$temp_file" "$target_file"
+}
+
+remove_block_if_complete() {
+  local target_file="$1"
+  local start_pattern="$2"
+  local end_pattern="$3"
+  local empty_file=""
+
+  if [[ -z "$start_pattern" || -z "$end_pattern" ]] || ! grep -Fq "$start_pattern" "$target_file"; then
+    return 0
+  fi
+
+  if ! grep -Fq "$end_pattern" "$target_file"; then
+    warn "$target_file 包含旧受控开始标记但缺少结束标记，无法安全删除旧块。"
+    return 0
+  fi
+
+  empty_file="$(mktemp)" || return 1
+  : > "$empty_file"
+  replace_block_in_file "$target_file" "$start_pattern" "$end_pattern" "$empty_file"
+  rm -f "$empty_file"
+}
+
+upsert_tagged_block() {
+  local target_file="$1"
+  local tag_name="$2"
+  local block_content="$3"
+  local legacy_begin_marker="${4:-}"
+  local legacy_end_marker="${5:-}"
+  local start_tag="<$tag_name>"
+  local end_tag="</$tag_name>"
+  local replacement_file=""
+
+  replacement_file="$(mktemp)" || return 1
+  printf '%s\n' "$block_content" > "$replacement_file"
+
+  if [[ ! -f "$target_file" ]]; then
+    cp "$replacement_file" "$target_file"
+    rm -f "$replacement_file"
+    return 0
+  fi
+
+  if grep -Fq "$start_tag" "$target_file"; then
+    if grep -Fq "$end_tag" "$target_file"; then
+      replace_block_in_file "$target_file" "$start_tag" "$end_tag" "$replacement_file"
+      remove_block_if_complete "$target_file" "$legacy_begin_marker" "$legacy_end_marker"
+      rm -f "$replacement_file"
+      return 0
+    fi
+
+    warn "$target_file 包含 $start_tag 但缺少 $end_tag，无法安全覆盖；将保守追加新的 $tag_name 块。"
+  elif [[ -n "$legacy_begin_marker" && -n "$legacy_end_marker" ]] && grep -Fq "$legacy_begin_marker" "$target_file"; then
+    if grep -Fq "$legacy_end_marker" "$target_file"; then
+      replace_block_in_file "$target_file" "$legacy_begin_marker" "$legacy_end_marker" "$replacement_file"
+      rm -f "$replacement_file"
+      return 0
+    fi
+
+    warn "$target_file 包含旧受控开始标记但缺少结束标记，无法安全迁移；将保守追加新的 $tag_name 块。"
+  fi
 
   {
     printf '\n'
-    prompt_block
+    cat "$replacement_file"
     printf '\n'
   } >> "$target_file"
+  rm -f "$replacement_file"
 }
 
 update_agent_file() {
   local target_file="$1"
   local file_name="$(basename "$target_file")"
+  local block_content=""
 
-  if [[ -f "$target_file" ]] && grep -Fq "$BEGIN_MARKER" "$target_file"; then
-    log "$file_name 已存在 frontend-skill-rules 受控块，跳过写入。"
-    return 0
-  fi
+  block_content="$(prompt_block)"
 
   if [[ ! -f "$target_file" ]]; then
     warn "$file_name 不存在。"
-    if confirm "是否创建 $file_name 并写入 README.md 中的 frontend skill 提示词？"; then
-      prompt_block > "$target_file"
-      printf '\n' >> "$target_file"
+    if confirm "是否创建 $file_name 并写入 README.md 中的 <frontend-rules> 配置？"; then
+      upsert_tagged_block "$target_file" "frontend-rules" "$block_content" "$BEGIN_MARKER" "$END_MARKER"
       log "已创建并写入 $file_name。"
     else
       warn "已按你的选择跳过创建 $file_name。"
@@ -237,10 +343,10 @@ update_agent_file() {
     return 0
   fi
 
-  warn "$file_name 已存在，脚本不会覆盖原内容。"
-  if confirm "是否将 README.md 中的 frontend skill 提示词追加到 $file_name 末尾？"; then
-    append_prompt_block "$target_file"
-    log "已追加提示词到 $file_name。"
+  warn "$file_name 已存在，脚本不会覆盖非 <frontend-rules> 内容。"
+  if confirm "是否新增或覆盖 $file_name 中的 <frontend-rules> 配置块？"; then
+    upsert_tagged_block "$target_file" "frontend-rules" "$block_content" "$BEGIN_MARKER" "$END_MARKER"
+    log "已新增或覆盖 $file_name 中的 <frontend-rules> 配置块。"
   else
     warn "已按你的选择跳过写入 $file_name。"
     print_manual_prompt_instructions "$target_file"
@@ -260,30 +366,21 @@ copy_or_append_tech_stack() {
   if ! template_content="$(download_text "$(tech_stack_url)")"; then
     fail "无法下载技术栈模板：$(tech_stack_url)"
   fi
+  template_content="$(ensure_tagged_content "frontend-tech-stack" "$template_content")"
 
   if [[ ! -f "$target_file" ]]; then
-    printf '%s\n' "$template_content" > "$target_file"
+    upsert_tagged_block "$target_file" "frontend-tech-stack" "$template_content" "$TECH_BEGIN_MARKER" "$TECH_END_MARKER"
     log "已创建技术栈方案：$target_file"
     warn "请按目标项目事实调整 docs/frontend-tech-stack.md，不要直接把模板当作所有项目的真实技术栈。"
     return 0
   fi
 
-  if grep -Fq "$TECH_BEGIN_MARKER" "$target_file"; then
-    log "docs/frontend-tech-stack.md 已包含本脚本追加过的模板块，跳过重复追加。"
-    return 0
-  fi
-
   warn "目标项目已存在 docs/frontend-tech-stack.md。该文件可能已经包含目标项目真实技术栈事实。"
-  if confirm "是否将远程 frontend-tech-stack.md 模板追加到目标文件末尾？"; then
-    {
-      printf '\n%s\n' "$TECH_BEGIN_MARKER"
-      printf '<!-- 以下内容来自 %s，请按目标项目事实合并调整。 -->\n\n' "$(tech_stack_url)"
-      printf '%s\n' "$template_content"
-      printf '%s\n' "$TECH_END_MARKER"
-    } >> "$target_file"
-    log "已追加技术栈模板到：$target_file"
+  if confirm "是否新增或覆盖 docs/frontend-tech-stack.md 中的 <frontend-tech-stack> 配置块？"; then
+    upsert_tagged_block "$target_file" "frontend-tech-stack" "$template_content" "$TECH_BEGIN_MARKER" "$TECH_END_MARKER"
+    log "已新增或覆盖 <frontend-tech-stack> 配置块：$target_file"
   else
-    warn "已按你的选择跳过追加 docs/frontend-tech-stack.md。"
+    warn "已按你的选择跳过处理 docs/frontend-tech-stack.md。"
     print_manual_tech_stack_instructions "$target_file"
   fi
 }

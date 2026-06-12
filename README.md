@@ -28,6 +28,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/ma
 ## 需要写入 CLAUDE.md / AGENTS.md 的内容
 
 ```md
+<frontend-rules>
 # 严格按照下面技能约束项目新建和开发的过程
 - frontend-code-style
 - frontend-project-structure
@@ -36,6 +37,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/ccwq/frontend-skill-rules/ma
 # 技术栈要求
 docs/frontend-tech-stack.md
 引入的重要第三方组件时候，先判断是否符合技术栈；引入新的功能需要在文件中登记。
+</frontend-rules>
 ```
 
 ## 安装细节
@@ -85,35 +87,39 @@ DEFAULT_SKILLS="frontend-project-structure frontend-reuse-governance frontend-co
 
 ### 交互确认规则
 
-脚本遵循“默认不覆盖、写入前确认”的策略。
+脚本遵循“默认不覆盖非受控内容、写入前确认”的策略。对直接追加 / 修改的文本内容使用 XML tag 作为受控块边界，并按 upsert 规则处理：
+
+- 未发现对应 XML tag：新增 tagged block。
+- 已发现对应 XML tag：覆盖该 tag 内的整个 block，不重复追加。
+- 只覆盖 XML tag 范围内的内容，不覆盖 tag 外用户内容。
+- 兼容旧版 HTML comment marker，发现旧受控块时会迁移替换为新的 XML tag block。
 
 `docs/frontend-tech-stack.md`：
 
-- 不存在：直接创建并写入远程模板。
-- 已存在：提醒该文件可能包含目标项目真实技术栈事实，并询问是否追加模板内容。
+- 不存在：直接创建并写入远程 `<frontend-tech-stack>` 模板。
+- 已存在但没有 `<frontend-tech-stack>`：提醒该文件可能包含目标项目真实技术栈事实，并询问是否追加模板 block。
+- 已存在 `<frontend-tech-stack>`：提醒并询问是否覆盖该 tag 内内容。
 - 选择取消：不修改文件，并输出手动合并方式。
 
 `CLAUDE.md` / `AGENTS.md`：
 
 - 不存在：提醒并询问是否创建。
-- 已存在但没有受控块：提醒并询问是否追加。
-- 已存在受控块：跳过，避免重复写入。
-- 选择否定：不创建、不追加，并输出手动增加方法。
+- 已存在但没有 `<frontend-rules>`：提醒并询问是否追加。
+- 已存在 `<frontend-rules>`：提醒并询问是否覆盖该 tag 内内容。
+- 选择否定：不创建、不追加、不覆盖，并输出手动增加方法。
 
-写入使用受控标记，方便幂等执行：
+受控块使用 XML tag，方便幂等执行：
 
 ```md
-<!-- frontend-skill-rules:begin -->
+<frontend-rules>
 ...
-<!-- frontend-skill-rules:end -->
+</frontend-rules>
 ```
 
-技术栈模板追加也使用受控标记，避免重复追加：
-
 ```md
-<!-- frontend-skill-rules-tech-stack-template:begin -->
+<frontend-tech-stack>
 ...
-<!-- frontend-skill-rules-tech-stack-template:end -->
+</frontend-tech-stack>
 ```
 
 ### 手动安装
@@ -132,7 +138,9 @@ npx -y skills add https://github.com/ccwq/frontend-skill-rules --skill frontend-
    https://raw.githubusercontent.com/ccwq/frontend-skill-rules/main/docs/frontend-tech-stack.md
    ```
 
-2. 将本 README 中“需要写入 CLAUDE.md / AGENTS.md 的内容”代码段加入目标项目 `CLAUDE.md` / `AGENTS.md`。
+   手动合并规则：没有 `<frontend-tech-stack>` 时追加模板；已存在时覆盖该 tag 内内容，不重复追加。
+
+2. 将本 README 中“需要写入 CLAUDE.md / AGENTS.md 的内容”代码段加入目标项目 `CLAUDE.md` / `AGENTS.md`。如果已存在 `<frontend-rules>`，覆盖该 tag 内内容，不重复追加。
 3. 在 Claude Code 会话内执行 `/reload-skills`，或重启 Claude Code。
 
 ## Skill 说明
