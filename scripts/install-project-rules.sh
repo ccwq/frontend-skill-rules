@@ -127,15 +127,44 @@ normalize_path() {
 
 download_text() {
   local url="$1"
+  local round
+  local attempt
+  local status=0
 
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$url"
-    return $?
+    for round in 1 2; do
+      for attempt in 1 2; do
+        if curl -fsSL --retry-connrefused "$url"; then
+          return 0
+        fi
+        status=$?
+        if [[ "$attempt" -lt 2 ]]; then
+          sleep 10
+        fi
+      done
+      if [[ "$round" -lt 2 ]]; then
+        sleep 25
+      fi
+    done
+    return "$status"
   fi
 
   if command -v wget >/dev/null 2>&1; then
-    wget -qO- "$url"
-    return $?
+    for round in 1 2; do
+      for attempt in 1 2; do
+        if wget -qO- "$url"; then
+          return 0
+        fi
+        status=$?
+        if [[ "$attempt" -lt 2 ]]; then
+          sleep 10
+        fi
+      done
+      if [[ "$round" -lt 2 ]]; then
+        sleep 25
+      fi
+    done
+    return "$status"
   fi
 
   return 127
@@ -227,34 +256,27 @@ replace_block_in_file() {
   local start_pattern="$2"
   local end_pattern="$3"
   local replacement_file="$4"
-  local temp_file=""
 
-  temp_file="$(mktemp)" || return 1
-  awk -v start="$start_pattern" -v end="$end_pattern" -v replacement_file="$replacement_file" '
-    function print_replacement() {
-      while ((getline line < replacement_file) > 0) {
-        print line
+  if ! command -v perl >/dev/null 2>&1; then
+    fail "perl 不可用，无法安全执行 XML tag upsert。请安装 perl 或使用 Git Bash 后重试。"
+  fi
+
+  # 用 perl 的多行正则做块替换，避免 sed -i 在 macOS / GNU / Git Bash 下的兼容差异。
+  START_PATTERN="$start_pattern" \
+    END_PATTERN="$end_pattern" \
+    REPLACEMENT_FILE="$replacement_file" \
+    perl -0pi -e '
+      BEGIN {
+        $start = $ENV{"START_PATTERN"};
+        $end = $ENV{"END_PATTERN"};
+        $replacement_file = $ENV{"REPLACEMENT_FILE"};
+        open my $fh, "<", $replacement_file or die "Cannot read replacement file: $replacement_file\n";
+        local $/;
+        $replacement = <$fh>;
+        close $fh;
       }
-      close(replacement_file)
-    }
-    index($0, start) > 0 {
-      if (!replaced) {
-        print_replacement()
-        replaced = 1
-      }
-      in_block = index($0, end) == 0
-      next
-    }
-    in_block && index($0, end) > 0 {
-      in_block = 0
-      next
-    }
-    !in_block { print }
-  ' "$target_file" > "$temp_file" || {
-    rm -f "$temp_file"
-    return 1
-  }
-  mv "$temp_file" "$target_file"
+      s/\Q$start\E.*?\Q$end\E/$replacement/s;
+    ' "$target_file"
 }
 
 remove_block_if_complete() {
